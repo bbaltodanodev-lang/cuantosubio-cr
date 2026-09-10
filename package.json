@@ -10,7 +10,7 @@
     "dev": "concurrently -k -n api,web -c green,cyan \"npm:dev:server\" \"npm:dev:web\"",
     "dev:web": "vite",
     "dev:server": "tsx watch server/index.ts",
-    "build": "vite build",
+    "build": "node scripts/build-api.mjs && vite build",
     "start": "cross-env NODE_ENV=production tsx server/index.ts",
     "assets:products": "node scripts/fetch-supermarket-images.cjs",
     "assets:brand": "node scripts/build-hero-banner-v2.cjs",
