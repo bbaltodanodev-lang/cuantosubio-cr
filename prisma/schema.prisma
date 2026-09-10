@@ -1,0 +1,419 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+/// Territorio: solo datos de Costa Rica (country_code = "CR")
+model Country {
+  id        Int      @id @default(autoincrement())
+  code      String   @unique // "CR"
+  name      String
+  currency  String   @default("CRC")
+  currencySymbol String @default("₡")
+  timezone  String   @default("America/Costa_Rica")
+  isCostaRica Boolean @default(false)
+  regions   Region[]
+  provinces Province[]
+  products  Product[]
+  stores    Store[]
+  storeLocations StoreLocation[]
+  prices    Price[]
+  sources   Source[]
+  priceChanges PriceChange[]
+
+  @@index([code])
+}
+
+model Region {
+  id        Int        @id @default(autoincrement())
+  code      String
+  name      String
+  countryId Int
+  country   Country    @relation(fields: [countryId], references: [id])
+  provinces Province[]
+
+  @@unique([countryId, code])
+  @@index([countryId])
+}
+
+model Province {
+  id        Int      @id @default(autoincrement())
+  code      String   // "7" = San José
+  name      String
+  countryId Int
+  country   Country  @relation(fields: [countryId], references: [id])
+  regionId  Int?
+  region    Region?  @relation(fields: [regionId], references: [id])
+  cantons   Canton[]
+  locations StoreLocation[]
+  prices    Price[]
+
+  @@unique([countryId, code])
+  @@index([countryId])
+}
+
+model Canton {
+  id         Int      @id @default(autoincrement())
+  code       String
+  name       String
+  provinceId Int
+  province   Province @relation(fields: [provinceId], references: [id])
+  districts  District[]
+  locations  StoreLocation[]
+  prices     Price[]
+
+  @@unique([provinceId, code])
+  @@index([provinceId])
+}
+
+model District {
+  id       Int      @id @default(autoincrement())
+  code     String
+  name     String
+  cantonId Int
+  canton   Canton   @relation(fields: [cantonId], references: [id])
+  locations StoreLocation[]
+
+  @@unique([cantonId, code])
+  @@index([cantonId])
+}
+
+model Brand {
+  id         Int          @id @default(autoincrement())
+  name       String
+  slug       String       @unique
+  origin     String?      // fabricado en CR, importado, ...
+  products   Product[]
+  createdById Int?
+}
+
+model Category {
+  id            Int        @id @default(autoincrement())
+  name          String
+  slug          String     @unique
+  description   String?
+  sort          Int        @default(0)
+  group         String?    // Alimentación, Limpieza, ...
+  parentId      Int?
+  parent            Category?  @relation("CategoryTree", fields: [parentId], references: [id])
+  children          Category[] @relation("CategoryTree")
+  products          Product[]
+  subcategories      Subcategory[]
+}
+
+model Subcategory {
+  id         Int        @id @default(autoincrement())
+  name       String
+  slug       String
+  categoryId Int
+  category   Category   @relation(fields: [categoryId], references: [id])
+  products   Product[]
+
+  @@unique([categoryId, slug])
+}
+
+model Product {
+  id            Int                 @id @default(autoincrement())
+  name          String
+  normalizedName String
+  slug          String              @unique
+  brandId       Int?
+  brand         Brand?              @relation(fields: [brandId], references: [id])
+  categoryId    Int?
+  category      Category?           @relation(fields: [categoryId], references: [id])
+  subcategoryId Int?
+  subcategory   Subcategory?        @relation(fields: [subcategoryId], references: [id])
+  description   String?
+  shortDescription String?
+  imageUrl      String?
+  countryId     Int
+  country       Country             @relation(fields: [countryId], references: [id])
+  isCanastaBasica Boolean           @default(false)
+  metaTitle     String?
+  metaDescription String?
+  indexable     Boolean             @default(false)
+  presenceStatus String             @default("CONFIRMED") // CONFIRMED, UNCONFIRMED
+  image          ProductImage?
+  identifiers    ProductIdentifier[]
+  variants       ProductVariant[]
+  prices         Price[]
+  changes        PriceChange[]
+  availabilities Availability[]
+  promotions     Promotion[]
+  createdById    Int?
+
+  @@index([countryId])
+  @@index([categoryId])
+  @@index([brandId])
+  @@index([normalizedName])
+  @@index([slug])
+  @@unique([countryId, slug])
+}
+
+model ProductIdentifier {
+  id        Int     @id @default(autoincrement())
+  productId Int
+  product   Product @relation(fields: [productId], references: [id])
+  type      String  // GTIN, SKU, UPC, EAN, MPN
+  value     String
+
+  @@unique([type, value])
+  @@index([productId])
+  @@index([value])
+}
+
+model ProductVariant {
+  id         Int     @id @default(autoincrement())
+  productId  Int
+  product    Product @relation(fields: [productId], references: [id])
+  presentation String // "2 kg", "30 unidades"
+  quantity   Float?
+  unit       String? // kg, g, l, ml, und, doc, paq, rollos
+  quantityValue Float? // 1.075
+  isDefault  Boolean @default(false)
+  sku        String?
+  prices     Price[]
+
+  @@index([productId])
+  @@unique([productId, presentation])
+}
+
+model Store {
+  id        Int             @id @default(autoincrement())
+  name      String
+  slug      String          @unique
+  type      String          @default("SUPERMARKET") // SUPERMARKET, COMMERCE, ...
+  description String?
+  website   String?
+  countryId Int
+  country   Country         @relation(fields: [countryId], references: [id])
+  logoUrl   String?
+  isSupermarket Boolean      @default(true)
+  locations StoreLocation[]
+  prices    Price[]
+  sources   Source[]
+  availabilities Availability[]
+  promotions Promotion[]
+
+  @@index([countryId])
+}
+
+model StoreLocation {
+  id         Int            @id @default(autoincrement())
+  storeId    Int
+  store      Store          @relation(fields: [storeId], references: [id])
+  name       String         // "Sucursal San José"
+  address    String?
+  countryId  Int
+  country    Country        @relation(fields: [countryId], references: [id])
+  provinceId Int?
+  province   Province?      @relation(fields: [provinceId], references: [id])
+  cantonId   Int?
+  canton     Canton?        @relation(fields: [cantonId], references: [id])
+  districtId Int?
+  district   District?      @relation(fields: [districtId], references: [id])
+  latitude   Float?
+  longitude  Float?
+  isActive   Boolean        @default(true)
+  prices     Price[]
+
+  @@index([storeId])
+  @@index([countryId])
+  @@index([provinceId])
+  @@index([cantonId])
+}
+
+model Source {
+  id         Int       @id @default(autoincrement())
+  name       String
+  slug       String    @unique
+  countryId  Int
+  country    Country   @relation(fields: [countryId], references: [id])
+  type       String    // API, SCRAPER, FILE, MANUAL, OFFICIAL
+  status     String    @default("ACTIVE") // ACTIVE, WARNING, ERROR, UNCONFIRMED
+  website    String?
+  storeId    Int?
+  store      Store?    @relation(fields: [storeId], references: [id])
+  lastSuccess DateTime?
+  lastError  DateTime?
+  lastRun    DateTime?
+  responseMs Int?
+  detectedCurrency String?
+  detectedLocation String?
+  connectors  Connector[]
+  prices      Price[]
+  snapshots   SourceSnapshot[]
+  scrapeRuns  ScrapeRun[]
+  scrapeErrors ScrapeError[]
+
+  @@index([countryId])
+}
+
+model Connector {
+  id       Int     @id @default(autoincrement())
+  name     String
+  slug     String  @unique
+  sourceId Int
+  source   Source  @relation(fields: [sourceId], references: [id])
+  enabled  Boolean @default(true)
+  config   Json?
+  countryCode String @default("CR")
+}
+
+model SourceSnapshot {
+  id         Int      @id @default(autoincrement())
+  sourceId   Int
+  source     Source   @relation(fields: [sourceId], references: [id])
+  capturedAt DateTime
+  raw        Json?
+  productCount Int?
+  rejectedCountryCount Int @default(0)
+}
+
+model Price {
+  id              Int            @id @default(autoincrement())
+  productId       Int
+  product         Product        @relation(fields: [productId], references: [id])
+  variantId       Int?
+  variant         ProductVariant?  @relation(fields: [variantId], references: [id])
+  storeId         Int
+  store           Store          @relation(fields: [storeId], references: [id])
+  storeLocationId Int?
+  storeLocation   StoreLocation? @relation(fields: [storeLocationId], references: [id])
+  countryId       Int
+  country         Country        @relation(fields: [countryId], references: [id])
+  provinceId      Int?
+  province        Province?      @relation(fields: [provinceId], references: [id])
+  cantonId        Int?
+  canton          Canton?        @relation(fields: [cantonId], references: [id])
+  amount          Decimal        @db.Decimal(12, 2)
+  amountPerUnit   Decimal?       @db.Decimal(12, 2)
+  currency        String         @default("CRC")
+  capturedAt      DateTime
+  sourceId        Int?
+  source          Source?        @relation(fields: [sourceId], references: [id])
+  availability    String         @default("AVAILABLE") // AVAILABLE, OUT_OF_STOCK, NOT_FOUND, UNKNOWN
+  promotionStatus String         @default("NORMAL") // NORMAL, PROMOTIONAL, MEMBERSHIP, VOLUME, STORE_ONLY
+  trustStatus     String         @default("VERIFIED") // VERIFIED, RECENT, HISTORICAL, ANOMALOUS, UNCONFIRMED_TERRITORY
+  isLatest        Boolean        @default(true)
+  sourceUrl       String?
+  url             String?
+  scrapeRunId     Int?
+  scrapeRun       ScrapeRun?     @relation(fields: [scrapeRunId], references: [id])
+  history         PriceHistory[]
+
+  @@unique([productId, variantId, storeId, storeLocationId, capturedAt])
+  @@index([productId])
+  @@index([storeId])
+  @@index([countryId])
+  @@index([provinceId])
+  @@index([cantonId])
+  @@index([capturedAt])
+  @@index([variantId])
+}
+
+model PriceHistory {
+  id              Int      @id @default(autoincrement())
+  priceId         Int
+  price           Price    @relation(fields: [priceId], references: [id])
+  productId       Int
+  capturedAt      DateTime
+  amount          Decimal  @db.Decimal(12, 2)
+  currency        String   @default("CRC")
+  sourceId        Int?
+
+  @@index([productId])
+  @@index([capturedAt])
+}
+
+model PriceChange {
+  id            Int      @id @default(autoincrement())
+  productId     Int
+  product       Product  @relation(fields: [productId], references: [id])
+  variantId     Int?
+  storeId       Int?
+  countryId     Int
+  country       Country  @relation(fields: [countryId], references: [id])
+  fromAmount    Decimal  @db.Decimal(12, 2)
+  toAmount      Decimal  @db.Decimal(12, 2)
+  currency      String   @default("CRC")
+  absoluteChange Decimal @db.Decimal(12, 2)
+  percentChange  Decimal  @db.Decimal(12, 2)
+  direction     String   // UP, DOWN, FLAT
+  period        String   // DAY, WEEK, MONTH, QUARTER, YEAR
+  capturedAt    DateTime
+
+  @@index([productId])
+  @@index([capturedAt])
+}
+
+model ProductImage {
+  id         Int     @id @default(autoincrement())
+  productId  Int     @unique
+  product    Product @relation(fields: [productId], references: [id])
+  url        String
+  alt        String?
+  width      Int?
+  height     Int?
+  format     String?
+  isPrimary  Boolean @default(true)
+
+  @@index([productId])
+}
+
+model Availability {
+  id          Int      @id @default(autoincrement())
+  productId   Int
+  product     Product  @relation(fields: [productId], references: [id])
+  storeId     Int
+  store       Store    @relation(fields: [storeId], references: [id])
+  status      String   // AVAILABLE_IN_CR, OUT_OF_STOCK_IN_CR, NOT_FOUND_IN_CR, STORE_ONLY, ONLINE_ONLY
+  checkedAt   DateTime
+
+  @@unique([productId, storeId])
+}
+
+model Promotion {
+  id          Int      @id @default(autoincrement())
+  productId   Int
+  product     Product  @relation(fields: [productId], references: [id])
+  storeId     Int
+  store       Store    @relation(fields: [storeId], references: [id])
+  description String?
+  regularPrice Decimal @db.Decimal(12, 2)
+  promoPrice  Decimal  @db.Decimal(12, 2)
+  currency    String   @default("CRC")
+  startsAt    DateTime?
+  endsAt      DateTime?
+  sourceUrl   String?
+}
+
+model ScrapeRun {
+  id        Int        @id @default(autoincrement())
+  sourceId  Int
+  source    Source     @relation(fields: [sourceId], references: [id])
+  startedAt DateTime
+  finishedAt DateTime?
+  status    String
+  productsFetched Int @default(0)
+  productsRejectedCountry Int @default(0)
+  productsSaved Int @default(0)
+  errorCount Int @default(0)
+  prices   Price[]
+  scrapeErrors ScrapeError[]
+}
+
+model ScrapeError {
+  id        Int       @id @default(autoincrement())
+  scrapeRunId Int?
+  scrapeRun ScrapeRun? @relation(fields: [scrapeRunId], references: [id])
+  sourceId  Int?
+  source    Source?   @relation(fields: [sourceId], references: [id])
+  message   String
+  context   Json?
+  createdAt DateTime
+}

@@ -1,0 +1,119 @@
+@import "tailwindcss";
+
+@font-face {
+  font-family: "Inter";
+  src: url("/fonts/InterVariable.woff2") format("woff2");
+  font-style: normal;
+  font-weight: 100 900;
+  font-display: swap;
+}
+
+@theme {
+  /* Marca: verde costarricense profundo */
+  --color-brand-50: #effaf2;
+  --color-brand-100: #d7f2df;
+  --color-brand-200: #b2e4c4;
+  --color-brand-300: #82d0a1;
+  --color-brand-400: #4fb67a;
+  --color-brand-500: #2b9d5b;
+  --color-brand-600: #0c6b3a;
+  --color-brand-700: #0e5b33;
+  --color-brand-800: #0d482a;
+  --color-brand-900: #0a3a22;
+  --color-brand-950: #052015;
+
+  /* Subidas */
+  --color-rise-50: #fdf2f2;
+  --color-rise-600: #c53030;
+  --color-rise-700: #9b2c2c;
+
+  /* Bajadas */
+  --color-drop-50: #effaf2;
+
+  /* Neutros (tinta) */
+  --color-ink-50: #f7f7f6;
+  --color-ink-100: #efefed;
+  --color-ink-200: #e2e2df;
+  --color-ink-300: #c9c9c5;
+  --color-ink-400: #a5a49f;
+  --color-ink-500: #7d7c76;
+  --color-ink-600: #5f5e58;
+  --color-ink-700: #47463f;
+  --color-ink-800: #2e2d28;
+  --color-ink-900: #1c1b17;
+  --color-ink-950: #12110e;
+
+  /* Acento: azul para acciones/links */
+  --color-acc-600: #2b6cb0;
+  --color-acc-700: #23548f;
+
+  --font-sans: "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
+:root {
+  --background: #fbfbf9;
+  --foreground: #1c1b17;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+}
+
+/* Inter se siente más sobria con un peso máximo ligeramente menor que el 900 por defecto. */
+.font-black {
+  font-weight: 800;
+}
+
+/* Accesibilidad: respetar prefers-reduced-motion */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* Focus visible claro para accesibilidad */
+:focus-visible {
+  outline: 2px solid var(--color-brand-600);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* Números: tabular para precios alineados en tablas */
+.tabular-nums {
+  font-variant-numeric: tabular-nums;
+}
+
+::selection {
+  background: var(--color-brand-100);
+  color: var(--color-brand-900);
+}
+
+/* Scrollbar sutil (no esencial, respeta preferencias) */
+@media (prefers-reduced-motion: no-preference) {
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: var(--color-ink-300);
+    border-radius: 9999px;
+    border: 2px solid var(--background);
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: var(--color-ink-400);
+  }
+}
